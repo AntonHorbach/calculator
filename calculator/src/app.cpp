@@ -47,5 +47,10 @@ int App::check_command()
 
 void App::get_answer()
 {
-	std::cout << "Result: " << Calculator::computation(std::move(command)) << '\n';
+	try {
+		std::cout << "Result: " << Calculator::computation(std::move(command)) << '\n';
+	}
+	catch (std::invalid_argument &e) {
+		std::cout << "Invalid expr! Try again!\n";
+	}
 }

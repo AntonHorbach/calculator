@@ -6,7 +6,6 @@
 class App {
 	bool running;
 	std::string command;
-	double result;
 
 public:
 	App();

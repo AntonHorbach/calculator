@@ -25,30 +25,61 @@ void Calculator::modify_expr(std::string & expr)
 	begin = false;
 }
 
-void Calculator::parse_brackets(const std::string & expr, std::vector<std::pair<size_t, size_t>> &brackets)
+bool Calculator::syntax_check(std::string & expr)
+{
+	expr.erase(std::remove(expr.begin(), expr.end(), ' '), expr.end());
+
+	size_t brackets = 0;
+	bool operators = false, operands = false;
+
+	if (expr[0] == '*' || expr[0] == '-' || expr[0] == '+' || expr[0] == '/' ||
+		expr[0] == '^' || expr[0] == ')')
+		return false;
+
+	for (char c : expr) {
+		if (brackets < 0) return false;
+		if (c == '*' || c == '-' || c == '+' || c == '/' ||
+			c == '^')
+		{
+			if (operators) return false;
+			operators = true;
+		}
+		else if (c == '(') {
+			++brackets;
+			operators = false;
+		}
+		else if (c == ')') {
+			--brackets;
+			operators = false;
+		}
+		else operators = false;
+	}
+	
+	if (brackets != 0) return false;
+
+	return true;
+}
+
+bool Calculator::parse_brackets(const std::string & expr, std::pair<size_t, size_t> &brackets)
 {
 	size_t flag = 0;
-	size_t first;
-
-	brackets.clear();
-
-	std::cout << "Parse\n";
 
 	for (size_t i = 0; i < expr.length(); ++i) {
-		std::cout << i << ' ' << expr[i] << '\n';
-
 		if (expr[i] == '(') {
-			if (flag == 0) first = i;
+			if (flag == 0) brackets.first = i;
 			++flag;
 		}
 		else if (expr[i] == ')') {
 			--flag;
 
 			if (flag == 0) {
-				brackets.push_back({ first, i });
+				brackets.second = i;
+				return true;
 			}
 		}
 	}
+
+	return false;
 }
 
 std::string Calculator::parse_expr(const std::string & expr)
@@ -66,12 +97,10 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 		if (j % 2 == 0) {
 			ss >> d_temp;
-			std::cout << d_temp << '\n';
 			operands.push_back(d_temp);
 		}
 		else {
 			ss >> temp;
-			std::cout << temp << '\n';
 			operators.push_back(temp);
 		}
 
@@ -90,7 +119,6 @@ std::string Calculator::parse_expr(const std::string & expr)
 	res = operands[0];
 	for (size_t i = 0; i < operators.size(); ++i) {
 		res = funcs.at(operators[i])(res, operands[i + 1]);
-		std::cout << res << '\n';
 	}
 
 	return std::to_string(res);
@@ -98,25 +126,22 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 std::string Calculator::computation(std::string&& expr)
 {
-	if(begin) modify_expr(expr);
+	if (begin) {
+		if(!syntax_check(expr)) throw std::invalid_argument(expr);
+		modify_expr(expr);
+	}
 	std::cout << expr << '\n';
 
-	std::vector<std::pair<size_t, size_t>> brackets;
-	parse_brackets(expr, brackets);
-
-	for (const auto &pair : brackets)
-		std::cout << pair.first << ' ' << pair.second << '\n';
+	std::pair<size_t, size_t> brackets;
 
 	while (true) {
-		if (!brackets.empty()) {
-			expr.replace(brackets[0].first, brackets[0].second - 
-				brackets[0].first + 1,
-				computation(expr.substr(brackets[0].first + 1,
-					brackets[0].second - brackets[0].first - 1)));
+		if (parse_brackets(expr, brackets)) {
+			expr.replace(brackets.first, brackets.second - 
+				brackets.first + 1,
+				computation(expr.substr(brackets.first + 1,
+					brackets.second - brackets.first - 1)));
 
 			parse_brackets(expr, brackets);
-			for (const auto &pair : brackets)
-				std::cout << pair.first << ' ' << pair.second << '\n';
 		}
 		else break;
 	}
