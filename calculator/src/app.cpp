@@ -24,7 +24,8 @@ int App::exec()
 void App::welcome()
 {
 	std::cout << "------Welcome!------\n";
-	std::cout << "Functions: +, -, *, /, ^ \n(enter q to exit)\n\n";
+	std::cout << "Functions: +, -, *, /, ^\nsin, cos, tan, ctan,\n";
+	std::cout << "asin, acos, atan, actan\n(enter q to exit)\n\n";
 }
 
 void App::get_command()
@@ -39,7 +40,7 @@ int App::check_command()
 		running = false;
 		return EXIT_FAILURE;
 	}
-	else if (command.find_first_not_of("1234567890+-*/^ ()") != std::string::npos)
+	else if (command.find_first_not_of("1234567890+-*/^ ()sinoctaqrlgexp.") != std::string::npos)
 		return EXIT_FAILURE;
 	
 	return EXIT_SUCCESS;
@@ -51,6 +52,6 @@ void App::get_answer()
 		std::cout << "Result: " << Calculator::computation(std::move(command)) << '\n';
 	}
 	catch (std::invalid_argument &e) {
-		std::cout << "Invalid expr! Try again!\n";
+		std::cout << e.what() << '\n';
 	}
 }

@@ -2,78 +2,106 @@
 
 bool Calculator::begin = true;
 
-const std::map<std::string, double(*)(double, double)> Calculator::funcs = {
-						{"+", [](double a, double b) {return a + b; }},
-						{"*", [](double a, double b) {return a * b; }},
-						{"-", [](double a, double b) {return a - b; }},
-						{"/", [](double a, double b) {return a / b; }},
-						{"^", [](double a, double b) {return pow(a, b); }}
+const std::map<std::string, double(*)(double, double)> Calculator::basic_funcs = {
+	{"+", [](double a, double b) {return a + b; }},
+	{"*", [](double a, double b) {return a * b; }},
+	{"-", [](double a, double b) {return a - b; }},
+	{"/", [](double a, double b) {return a / b; }},
+	{"^", [](double a, double b) {return pow(a, b); }}
+};
+
+const std::map<std::string, double(*)(double)> Calculator::funcs = {
+	{"sin", [](double a) { return sin(a); }},
+	{"cos", [](double a) {return cos(a); }},
+	{"tan", [](double a) {return tan(a); }},
+	{"ctan", [](double a) {return 1 / tan(a); }},
+	{"asin", [](double a) { return asin(a); }},
+	{"acos", [](double a) {return acos(a); }},
+	{"atan", [](double a) {return atan(a); }},
+	{"actan", [](double a) {return M_PI_2 - atan(a); }},
+	{"log", [](double a) {return log(a); }},
+	{"sqrt", [](double a) {return sqrt(a); }},
+	{"exp", [](double a) {return exp(a); }}
 };
 
 void Calculator::modify_expr(std::string & expr)
 {
+	expr.erase(std::remove(expr.begin(), expr.end(), ' '), expr.end());
+
+	std::string member("");
+	const std::string opers("-+*/^");
+	const std::vector<std::string> funcs_ = { "sin", "cos", "tan", "ctan",
+											"asin", "acos", "atan", "actan",
+											"exp", "log", "sqrt"};
+
+	size_t count = 0;
+	bool oper_status = false;
+
 	for (size_t i = 0; i < expr.length(); ++i) {
-		if (expr[i] == '*' || expr[i] == '+' || expr[i] == '-'
-			|| expr[i] == '/' || expr[i] == '^')
+		if (!oper_status && i != 0 && std::find(opers.begin(), opers.end(), expr[i]) != opers.end())
 		{
 			expr.insert(i, " ");
 			expr.insert(i + 2, " ");
+
 			i += 2;
+			oper_status = true;
+			member.clear();
+		}
+		else {
+			member += expr[i];
+			member.erase(std::remove(member.begin(), member.end(), ' '), member.end());
+			++count;
+
+			if (std::find(funcs_.begin(), funcs_.end(), member) != funcs_.end())
+			{
+				expr.insert(i + 1, " ");
+
+				i += 2;
+				member.clear();
+				count = 0;
+			}
+
+			if (count == 6) {
+				member.clear();
+				count = 0;
+			}
+
+			oper_status = false;
 		}
 	}
 	
 	begin = false;
 }
 
-bool Calculator::syntax_check(std::string & expr)
+bool Calculator::parentheses_check(std::string & expr)
 {
-	expr.erase(std::remove(expr.begin(), expr.end(), ' '), expr.end());
-
-	size_t brackets = 0;
-	bool operators = false, operands = false;
-
-	if (expr[0] == '*' || expr[0] == '-' || expr[0] == '+' || expr[0] == '/' ||
-		expr[0] == '^' || expr[0] == ')')
-		return false;
+	size_t parentheses = 0;
 
 	for (char c : expr) {
-		if (brackets < 0) return false;
-		if (c == '*' || c == '-' || c == '+' || c == '/' ||
-			c == '^')
-		{
-			if (operators) return false;
-			operators = true;
-		}
-		else if (c == '(') {
-			++brackets;
-			operators = false;
-		}
-		else if (c == ')') {
-			--brackets;
-			operators = false;
-		}
-		else operators = false;
+		if (parentheses < 0) return false;
+		if (c == '(') ++parentheses;
+		else if (c == ')') --parentheses;
 	}
-	
-	if (brackets != 0) return false;
+
+	if (parentheses != 0) return false;
 
 	return true;
 }
 
-bool Calculator::parse_brackets(const std::string & expr, std::pair<size_t, size_t> &brackets)
+bool Calculator::parse_parentheses(const std::string & expr, std::pair<size_t, size_t> &parentheses)
 {
 	size_t flag = 0;
 
 	for (size_t i = 0; i < expr.length(); ++i) {
 		if (expr[i] == '(') {
-			if (flag == 0) brackets.first = i;
+			if (flag == 0) parentheses.first = i;
 			++flag;
 		}
 		else if (expr[i] == ')') {
 			--flag;
 
 			if (flag == 0) {
-				brackets.second = i;
+				parentheses.second = i;
 				return true;
 			}
 		}
@@ -93,15 +121,38 @@ std::string Calculator::parse_expr(const std::string & expr)
 	size_t j = 0;
 	while (!ss.eof()) {
 		std::string temp;
-		double d_temp;
+
+		ss >> temp;
 
 		if (j % 2 == 0) {
-			ss >> d_temp;
-			operands.push_back(d_temp);
+			if (atof(temp.c_str()) == 0.0) {
+				double d_temp;
+				
+				ss >> d_temp;
+				std::cout << temp << ' ' << d_temp << '\n';
+				try {
+					operands.push_back(funcs.at(temp)(d_temp));
+				}
+				catch (...) {
+					throw std::invalid_argument("Invalid command: "+temp+" "+std::to_string(d_temp));
+				}
+			}
+			else {
+				try {
+					operands.push_back(atof(temp.c_str()));
+				}
+				catch (...) {
+					throw std::invalid_argument("Invalid command: " + temp);
+				}
+			}
 		}
 		else {
-			ss >> temp;
-			operators.push_back(temp);
+			try {
+				operators.push_back(temp);
+			}
+			catch (...) {
+				throw std::invalid_argument("Invalid command: " + temp);
+			}
 		}
 
 		++j;
@@ -109,7 +160,7 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 	for (size_t i = 0; i < operators.size(); ++i) {
 		if (operators[i] == "*" || operators[i] == "^" || operators[i] == "/") {
-			operands[i] = funcs.at(operators[i])(operands[i], operands[i + 1]);
+			operands[i] = basic_funcs.at(operators[i])(operands[i], operands[i + 1]);
 
 			operators.erase(operators.begin() + i);
 			operands.erase(operands.begin() + i + 1);
@@ -118,7 +169,12 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 	res = operands[0];
 	for (size_t i = 0; i < operators.size(); ++i) {
-		res = funcs.at(operators[i])(res, operands[i + 1]);
+		try {
+			res = basic_funcs.at(operators[i])(res, operands[i + 1]);
+		}
+		catch (std::out_of_range &e) {
+			throw std::invalid_argument("Invalid operator: " + operators[i]);
+		}
 	}
 
 	return std::to_string(res);
@@ -127,21 +183,22 @@ std::string Calculator::parse_expr(const std::string & expr)
 std::string Calculator::computation(std::string&& expr)
 {
 	if (begin) {
-		if(!syntax_check(expr)) throw std::invalid_argument(expr);
 		modify_expr(expr);
+		if(!parentheses_check(expr)) throw std::invalid_argument(expr);
 	}
+
 	std::cout << expr << '\n';
 
-	std::pair<size_t, size_t> brackets;
+	std::pair<size_t, size_t> parentheses;
 
 	while (true) {
-		if (parse_brackets(expr, brackets)) {
-			expr.replace(brackets.first, brackets.second - 
-				brackets.first + 1,
-				computation(expr.substr(brackets.first + 1,
-					brackets.second - brackets.first - 1)));
+		if (parse_parentheses(expr, parentheses)) {
+			expr.replace(parentheses.first, parentheses.second - 
+				parentheses.first + 1,
+				computation(expr.substr(parentheses.first + 1,
+					parentheses.second - parentheses.first - 1)));
 
-			parse_brackets(expr, brackets);
+			parse_parentheses(expr, parentheses);
 		}
 		else break;
 	}
