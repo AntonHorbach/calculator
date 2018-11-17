@@ -23,9 +23,10 @@ int App::exec()
 
 void App::welcome()
 {
-	std::cout << "------Welcome!------\n";
-	std::cout << "Functions: +, -, *, /, ^\nsin, cos, tan, ctan,\n";
-	std::cout << "asin, acos, atan, actan\n(enter q to exit)\n\n";
+	std::cout << "------Welcome!------\n"
+			  << "Functions: +, -, *, /, ^\nsin, cos, tan, ctan,\n"
+	          << "asin, acos, atan, actan\n"
+			  <<"exp, log, sqrt\n(enter q to exit)\n\n";
 }
 
 void App::get_command()
