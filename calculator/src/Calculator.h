@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <sstream>
 #include <iostream>
-#include <Array>
 
 class Calculator
 {

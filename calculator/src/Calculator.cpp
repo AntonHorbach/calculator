@@ -30,9 +30,6 @@ void Calculator::modify_expr(std::string & expr)
 
 	std::string member("");
 	const std::string opers("-+*/^");
-	const std::vector<std::string> funcs_ = { "sin", "cos", "tan", "ctan",
-											"asin", "acos", "atan", "actan",
-											"exp", "log", "sqrt"};
 
 	size_t count = 0;
 	bool oper_status = false;
@@ -52,7 +49,7 @@ void Calculator::modify_expr(std::string & expr)
 			member.erase(std::remove(member.begin(), member.end(), ' '), member.end());
 			++count;
 
-			if (std::find(funcs_.begin(), funcs_.end(), member) != funcs_.end())
+			if (funcs.find(member) != funcs.end())
 			{
 				expr.insert(i + 1, " ");
 
@@ -69,7 +66,7 @@ void Calculator::modify_expr(std::string & expr)
 			oper_status = false;
 		}
 	}
-	
+
 	begin = false;
 }
 
@@ -124,35 +121,24 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 		ss >> temp;
 
-		if (j % 2 == 0) {
-			if (atof(temp.c_str()) == 0.0) {
-				double d_temp;
-				
-				ss >> d_temp;
-				std::cout << temp << ' ' << d_temp << '\n';
-				try {
+		try {
+			if (j % 2 == 0) {
+				if (atof(temp.c_str()) == 0.0) {
+					double d_temp;
+
+					ss >> d_temp;
 					operands.push_back(funcs.at(temp)(d_temp));
 				}
-				catch (...) {
-					throw std::invalid_argument("Invalid command: "+temp+" "+std::to_string(d_temp));
+				else {
+					operands.push_back(atof(temp.c_str()));
 				}
 			}
 			else {
-				try {
-					operands.push_back(atof(temp.c_str()));
-				}
-				catch (...) {
-					throw std::invalid_argument("Invalid command: " + temp);
-				}
-			}
-		}
-		else {
-			try {
 				operators.push_back(temp);
 			}
-			catch (...) {
-				throw std::invalid_argument("Invalid command: " + temp);
-			}
+		}
+		catch (...) {
+			throw std::invalid_argument("Invalid command: " + expr);
 		}
 
 		++j;
@@ -164,6 +150,8 @@ std::string Calculator::parse_expr(const std::string & expr)
 
 			operators.erase(operators.begin() + i);
 			operands.erase(operands.begin() + i + 1);
+
+			--i;
 		}
 	}
 
@@ -184,7 +172,7 @@ std::string Calculator::computation(std::string&& expr)
 {
 	if (begin) {
 		modify_expr(expr);
-		if(!parentheses_check(expr)) throw std::invalid_argument(expr);
+		if (!parentheses_check(expr)) throw std::invalid_argument(expr);
 	}
 
 	std::cout << expr << '\n';
@@ -193,7 +181,7 @@ std::string Calculator::computation(std::string&& expr)
 
 	while (true) {
 		if (parse_parentheses(expr, parentheses)) {
-			expr.replace(parentheses.first, parentheses.second - 
+			expr.replace(parentheses.first, parentheses.second -
 				parentheses.first + 1,
 				computation(expr.substr(parentheses.first + 1,
 					parentheses.second - parentheses.first - 1)));
